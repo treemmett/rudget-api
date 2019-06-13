@@ -1,0 +1,17 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended",
+    "tslint-config-prettier",
+    "tslint-plugin-prettier"
+  ],
+  "jsRules": {},
+  "rules": {
+    "trailing-comma": false,
+    "prettier": true,
+    "quotemark": [true, "single", "avoid-escape"],
+    "interface-name": false,
+    "no-namespace": false,
+    "max-classes-per-file": false
+  }
+}
