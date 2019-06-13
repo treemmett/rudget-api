@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import UserController from '../controllers/UserController';
+import validateSession from '../middleware/validateSession';
 
 const user = Router();
 
@@ -21,5 +22,7 @@ user.post('/', async (req, res, next) => {
     next(e);
   }
 });
+
+user.get('/', validateSession(), (req, res) => res.send(req.session));
 
 export default user;

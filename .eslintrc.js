@@ -376,6 +376,9 @@ module.exports = {
       {
         allowExpressions: true
       }
-    ]
+    ],
+
+    // allow module declarations
+    '@typescript-eslint/no-namespace': 0
   }
 };

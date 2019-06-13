@@ -1,7 +1,7 @@
+import { decrypt, encrypt } from '../utils/encryption';
 import Session from '../entities/Session';
 import User from '../entities/User';
 import bcrypt from 'bcrypt';
-import { encrypt } from '../utils/encryption';
 import { getManager } from 'typeorm';
 
 export default class UserController {
@@ -55,5 +55,26 @@ export default class UserController {
       accessToken: encrypted,
       csrf: iv
     };
+  }
+
+  public static async validateSession(
+    accessToken: string,
+    csrf: string
+  ): Promise<User> {
+    const decrypted = decrypt(accessToken, csrf, UserController.encryptionKey);
+    const { id, version } = JSON.parse(decrypted);
+
+    const user = await getManager()
+      .createQueryBuilder(User, 'user')
+      .leftJoin('user.sessions', 'session')
+      .where('session.id = :sessionId', { sessionId: id })
+      .andWhere('session.version = :version', { version })
+      .getOne();
+
+    if (!user) {
+      throw new Error('Session not found.');
+    }
+
+    return user;
   }
 }
