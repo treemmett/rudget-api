@@ -3,8 +3,10 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  OneToMany,
   PrimaryGeneratedColumn
 } from 'typeorm';
+import Session from './Session';
 
 @Entity({ name: 'users' })
 export default class User {
@@ -21,9 +23,12 @@ export default class User {
   @Column({ nullable: false })
   public lastName: string;
 
-  @Column({ nullable: false })
+  @Column({ nullable: false, select: false })
   public hash: string;
 
   @CreateDateColumn()
   public created: Date;
+
+  @OneToMany(() => Session, session => session.user)
+  public sessions: Session[];
 }
