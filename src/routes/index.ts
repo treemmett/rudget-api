@@ -21,7 +21,7 @@ export default async function(): Promise<Router> {
 
     const { default: route } = await import(path.resolve(__dirname, file));
 
-    router.use('/' + name, route);
+    router.use(`/${name}`, route);
   });
 
   return router;
