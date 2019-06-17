@@ -1,4 +1,5 @@
 import { decrypt, encrypt } from '../utils/encryption';
+import BudgetController from './BudgetController';
 import Session from '../entities/Session';
 import User from '../entities/User';
 import bcrypt from 'bcrypt';
@@ -21,6 +22,9 @@ export default class UserController {
     });
 
     await getManager().save(user);
+
+    // create initial budget
+    await BudgetController.createBudget(`${firstName}'s Budget`, user);
 
     return user;
   }
