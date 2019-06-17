@@ -1,4 +1,11 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn
+} from 'typeorm';
+import BudgetGroup from './BudgetGroup';
 import User from './User';
 
 @Entity({ name: 'budgets' })
@@ -9,6 +16,9 @@ export default class Budget {
   @Column({ nullable: false })
   public name: string;
 
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { eager: true })
   public owner: User;
+
+  @OneToMany(() => BudgetGroup, group => group.budget, { eager: true })
+  public groups: BudgetGroup[];
 }
