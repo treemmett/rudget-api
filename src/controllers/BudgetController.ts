@@ -1,16 +1,23 @@
 import Budget from '../entities/Budget';
+import BudgetCategory from '../entities/BudgetCategory';
 import BudgetGroup from '../entities/BudgetGroup';
 import User from '../entities/User';
 import { getManager } from 'typeorm';
 
 export default class BudgetController {
-  private static defaultCategories = [
-    'Housing',
-    'Transportation',
-    'Food',
-    'Personal Care',
-    'Quality of Life'
-  ];
+  private static defaultCategories: { [key: string]: string[] } = {
+    Housing: ['Rent', 'Gas', 'Electric', 'Internet'],
+    Transportation: [
+      'Auto Loan',
+      'Fuel',
+      'Insurance',
+      'Maintenance',
+      'Public Transportation'
+    ],
+    Food: ['Groceries', 'Dining', 'Snacks'],
+    'Personal Care': ['Medical', 'Haircut'],
+    'Quality of Life': ['Subscriptions', 'Entertainment', 'Phone']
+  };
 
   public static async createBudget(name: string, owner: User): Promise<Budget> {
     const budget = getManager().create(Budget, {
@@ -22,9 +29,24 @@ export default class BudgetController {
 
     const controller = new BudgetController(budget, owner);
 
+    // create default groups
+    const defaultGroups = await Promise.all(
+      Object.keys(BudgetController.defaultCategories).map(
+        controller.createGroup,
+        controller
+      )
+    );
+
+    // create default categories
     await Promise.all(
-      BudgetController.defaultCategories.map(async groupName => {
-        await controller.createGroup(groupName);
+      defaultGroups.map(async group => {
+        const categoryNames = BudgetController.defaultCategories[group.name];
+
+        await Promise.all(
+          categoryNames.map(categoryName =>
+            controller.createCategory(categoryName, group)
+          )
+        );
       })
     );
 
@@ -47,6 +69,20 @@ export default class BudgetController {
     } else {
       throw new Error('You do not have permission to access this budget.');
     }
+  }
+
+  public async createCategory(
+    name: string,
+    group: BudgetGroup
+  ): Promise<BudgetCategory> {
+    const category = getManager().create(BudgetCategory, {
+      name,
+      group
+    });
+
+    await getManager().save(BudgetCategory, category);
+
+    return category;
   }
 
   public async createGroup(name: string): Promise<BudgetGroup> {

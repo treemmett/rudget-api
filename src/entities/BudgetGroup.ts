@@ -1,5 +1,12 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn
+} from 'typeorm';
 import Budget from './Budget';
+import BudgetCategory from './BudgetCategory';
 
 @Entity({ name: 'budget_groups ' })
 export default class BudgetGroup {
@@ -9,6 +16,12 @@ export default class BudgetGroup {
   @Column()
   public name: string;
 
-  @ManyToOne(() => Budget, budget => budget.groups, { onDelete: 'CASCADE' })
+  @OneToMany(() => BudgetCategory, category => category.group)
+  public categories: BudgetCategory[];
+
+  @ManyToOne(() => Budget, budget => budget.groups, {
+    onDelete: 'CASCADE',
+    nullable: false
+  })
   public budget: Budget;
 }
