@@ -1,4 +1,11 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn
+} from 'typeorm';
+import BudgetAllocation from './BudgetAllocation';
 import BudgetGroup from './BudgetGroup';
 
 @Entity({ name: 'budget_categories' })
@@ -14,4 +21,7 @@ export default class BudgetCategory {
     nullable: false
   })
   public group: BudgetGroup;
+
+  @OneToMany(() => BudgetAllocation, allocation => allocation.category)
+  public allocations: BudgetAllocation[];
 }

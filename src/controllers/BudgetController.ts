@@ -1,4 +1,5 @@
 import Budget from '../entities/Budget';
+import BudgetAllocation from '../entities/BudgetAllocation';
 import BudgetCategory from '../entities/BudgetCategory';
 import BudgetGroup from '../entities/BudgetGroup';
 import User from '../entities/User';
@@ -61,6 +62,14 @@ export default class BudgetController {
     }
   }
 
+  public static async getCategory(categoryId: string): Promise<BudgetCategory> {
+    try {
+      return await getManager().findOneOrFail(BudgetCategory, categoryId);
+    } catch (e) {
+      throw new Error('Category not found.');
+    }
+  }
+
   public budget: Budget;
 
   public constructor(budget: Budget, owner: User) {
@@ -94,5 +103,51 @@ export default class BudgetController {
     await getManager().save(BudgetGroup, group);
 
     return group;
+  }
+
+  public async getCategory(categoryId: string): Promise<BudgetCategory> {
+    try {
+      const entity = await getManager()
+        .createQueryBuilder(BudgetCategory, 'category')
+        .leftJoin('category.group', 'group')
+        .leftJoin('group.budget', 'budget')
+        .where('budget.id = :budgetId', { budgetId: this.budget.id })
+        .andWhere('category.id = :categoryId', { categoryId })
+        .getOne();
+
+      if (!entity) {
+        throw {};
+      }
+
+      return entity;
+    } catch (e) {
+      throw new Error('Category not found.');
+    }
+  }
+
+  public async allocateFunds(
+    category: BudgetCategory,
+    year: number,
+    month: number,
+    amount: number
+  ): Promise<void> {
+    // check if allocation already exists
+    const entity =
+      (await getManager()
+        .createQueryBuilder(BudgetAllocation, 'allocation')
+        .leftJoin('allocation.category', 'category')
+        .where('category.id = :categoryId', { categoryId: category.id })
+        .andWhere('allocation.year = :year', { year })
+        .andWhere('allocation.month = :month', { month })
+        .getOne()) ||
+      getManager().create(BudgetAllocation, {
+        category,
+        month,
+        year
+      });
+
+    entity.amount = amount;
+
+    await getManager().save(BudgetAllocation, entity);
   }
 }
