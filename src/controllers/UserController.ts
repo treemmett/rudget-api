@@ -1,4 +1,5 @@
 import { decrypt, encrypt } from '../utils/encryption';
+import Budget from '../entities/Budget';
 import BudgetController from './BudgetController';
 import Session from '../entities/Session';
 import User from '../entities/User';
@@ -80,5 +81,19 @@ export default class UserController {
     }
 
     return user;
+  }
+
+  public user: User;
+
+  public constructor(user: User) {
+    this.user = user;
+  }
+
+  public getBudgets(): Promise<Budget[]> {
+    return getManager()
+      .createQueryBuilder(Budget, 'budget')
+      .leftJoin('budget.owner', 'user')
+      .where('user.id = :userId', { userId: this.user.id })
+      .getMany();
   }
 }
