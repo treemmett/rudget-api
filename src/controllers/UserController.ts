@@ -5,9 +5,24 @@ import Session from '../entities/Session';
 import User from '../entities/User';
 import bcrypt from 'bcrypt';
 import { getManager } from 'typeorm';
+import randomBytes from '../utils/randomBytes';
+
+export interface SessionTokens {
+  accessToken: {
+    key: string;
+    cookie: string;
+  };
+  refreshToken: {
+    key: string;
+    cookie: string;
+  };
+  expiresIn: number;
+}
 
 export default class UserController {
   private static encryptionKey = process.env.ACCESS_TOKEN_ENCRYPTION as string;
+
+  private static tokenExpiration = 300;
 
   public static async createUser(
     email: string,
@@ -33,7 +48,7 @@ export default class UserController {
   public static async login(
     email: string,
     password: string
-  ): Promise<{ accessToken: string; csrf: string }> {
+  ): Promise<SessionTokens> {
     const user = await getManager().findOneOrFail(User, {
       where: { email },
       select: ['hash', 'id']
@@ -45,29 +60,70 @@ export default class UserController {
       throw new Error('Password is incorrect.');
     }
 
+    const refreshSecret = (await randomBytes(32)).toString('hex');
+
     const session = getManager().create(Session, {
-      user
+      user,
+      refreshSecretHash: await bcrypt.hash(refreshSecret, 10)
     });
 
     await getManager().save(Session, session);
 
-    const { iv, encrypted } = await encrypt(
-      JSON.stringify({ id: session.id, version: session.version }),
-      UserController.encryptionKey
-    );
+    return UserController.getSessionTokens(session, refreshSecret);
+  }
 
-    return {
-      accessToken: encrypted,
-      csrf: iv
-    };
+  public static async refreshSession(
+    refreshToken: string,
+    cookie: string
+  ): Promise<SessionTokens> {
+    let id: string;
+    let secret: string;
+
+    try {
+      const json = decrypt(refreshToken, cookie, UserController.encryptionKey);
+      [id, secret] = JSON.parse(json);
+    } catch (e) {
+      throw new Error('Invalid refresh token.');
+    }
+
+    const session = await getManager()
+      .createQueryBuilder(Session, 'session')
+      .addSelect('session.refreshSecretHash')
+      .where('session.id = :id', { id })
+      .getOne();
+
+    if (!session) {
+      throw new Error('Invalid refresh token.');
+    }
+
+    const hashMatch = bcrypt.compare(secret, session.refreshSecretHash);
+
+    if (!hashMatch) {
+      throw new Error('Invalid refresh token.');
+    }
+
+    const newRefreshSecret = (await randomBytes(32)).toString('hex');
+
+    session.refreshSecretHash = await bcrypt.hash(newRefreshSecret, 10);
+
+    await getManager().save(Session, session);
+
+    return await UserController.getSessionTokens(session, newRefreshSecret);
   }
 
   public static async validateSession(
     accessToken: string,
     csrf: string
   ): Promise<User> {
-    const decrypted = decrypt(accessToken, csrf, UserController.encryptionKey);
-    const { id, version } = JSON.parse(decrypted);
+    let id: string;
+    let version: number;
+
+    try {
+      const json = decrypt(accessToken, csrf, UserController.encryptionKey);
+      [id, version] = JSON.parse(json);
+    } catch (e) {
+      throw new Error('Invalid token');
+    }
 
     const user = await getManager()
       .createQueryBuilder(User, 'user')
@@ -77,7 +133,7 @@ export default class UserController {
       .getOne();
 
     if (!user) {
-      throw new Error('Session not found.');
+      throw new Error('Invalid session.');
     }
 
     return user;
@@ -95,5 +151,33 @@ export default class UserController {
       .leftJoin('budget.owner', 'user')
       .where('user.id = :userId', { userId: this.user.id })
       .getMany();
+  }
+
+  private static async getSessionTokens(
+    session: Session,
+    refreshSecret: string
+  ): Promise<SessionTokens> {
+    const [accessToken, refreshToken] = await Promise.all([
+      encrypt(
+        JSON.stringify([session.id, session.version]),
+        UserController.encryptionKey
+      ),
+      encrypt(
+        JSON.stringify([session.id, refreshSecret]),
+        UserController.encryptionKey
+      )
+    ]);
+
+    return {
+      accessToken: {
+        key: accessToken.encrypted,
+        cookie: accessToken.iv
+      },
+      refreshToken: {
+        key: refreshToken.encrypted,
+        cookie: refreshToken.iv
+      },
+      expiresIn: UserController.tokenExpiration
+    };
   }
 }

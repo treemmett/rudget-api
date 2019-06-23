@@ -11,7 +11,7 @@ const validateSession = (): RequestHandler => async (req, res, next) => {
     const accessToken = req.headers.authorization.split('Bearer ');
     const user: User = await UserController.validateSession(
       accessToken[1],
-      req.cookies.csrf
+      req.cookies.s
     );
 
     req.session = {

@@ -1,4 +1,5 @@
 import {
+  Column,
   CreateDateColumn,
   Entity,
   ManyToOne,
@@ -17,6 +18,9 @@ export default class Session {
 
   @CreateDateColumn()
   public timeIssued: Date;
+
+  @Column()
+  public refreshSecretHash: string;
 
   @ManyToOne(() => User, user => user.sessions, {
     onDelete: 'CASCADE',
