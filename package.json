@@ -33,6 +33,7 @@
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^4.3.0",
     "eslint-plugin-prettier": "^3.1.0",
+    "husky": "^2.7.0",
     "nodemon": "^1.18.10",
     "prettier": "^1.16.4",
     "typescript": "^3.4.1"
@@ -43,5 +44,10 @@
     ],
     "exec": "node build",
     "ext": "js ts"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "yarn lint"
+    }
   }
 }
