@@ -22,7 +22,7 @@ export interface SessionTokens {
 export default class UserController {
   private static encryptionKey = process.env.ACCESS_TOKEN_ENCRYPTION as string;
 
-  private static tokenExpiration = 300;
+  private static tokenExpiration = 3600;
 
   public static async createUser(
     email: string,

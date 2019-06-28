@@ -18,10 +18,13 @@ budgets.get('/', validateSession(), async (req, res, next) => {
 
 budgets.get('/:budgetId', validateSession(), async (req, res, next) => {
   try {
-    const budget = await BudgetController.getBudget(req.params.budgetId);
-    const controller = new BudgetController(budget, req.session.user);
-    delete controller.budget.owner;
-    res.send(controller.budget);
+    const budget = await BudgetController.getBudget(
+      req.params.budgetId,
+      req.session.user
+    );
+    const controller = new BudgetController(budget);
+    const renderedBudget = await controller.displayBudget();
+    res.send(renderedBudget);
   } catch (e) {
     next(e);
   }
@@ -51,8 +54,11 @@ budgets.put(
     try {
       const { budgetId, categoryId, year, month } = req.params;
 
-      const budget = await BudgetController.getBudget(budgetId);
-      const controller = new BudgetController(budget, req.session.user);
+      const budget = await BudgetController.getBudget(
+        budgetId,
+        req.session.user
+      );
+      const controller = new BudgetController(budget);
       const category = await controller.getCategory(categoryId);
       await controller.allocateFunds(category, year, month, req.body.amount);
       res.end();

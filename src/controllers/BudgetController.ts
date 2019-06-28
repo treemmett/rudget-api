@@ -28,7 +28,7 @@ export default class BudgetController {
 
     await getManager().save(Budget, budget);
 
-    const controller = new BudgetController(budget, owner);
+    const controller = new BudgetController(budget);
 
     // create default groups
     const defaultGroups = await Promise.all(
@@ -54,30 +54,51 @@ export default class BudgetController {
     return budget;
   }
 
-  public static async getBudget(budgetId: string): Promise<Budget> {
-    try {
-      return await getManager().findOneOrFail(Budget, budgetId);
-    } catch (e) {
+  public static async getBudget(budgetId: string, user: User): Promise<Budget> {
+    const budget = await getManager()
+      .createQueryBuilder(Budget, 'budget')
+      .where('budget.id = :budgetId', { budgetId })
+      .leftJoin('budget.owner', 'user')
+      .andWhere('user.id = :userId', { userId: user.id })
+      .getOne();
+
+    if (!budget) {
       throw new Error('Budget not found.');
     }
-  }
 
-  public static async getCategory(categoryId: string): Promise<BudgetCategory> {
-    try {
-      return await getManager().findOneOrFail(BudgetCategory, categoryId);
-    } catch (e) {
-      throw new Error('Category not found.');
-    }
+    return budget;
   }
 
   public budget: Budget;
 
-  public constructor(budget: Budget, owner: User) {
-    if (budget.owner.id === owner.id) {
-      this.budget = budget;
-    } else {
-      throw new Error('You do not have permission to access this budget.');
-    }
+  public constructor(budget: Budget) {
+    this.budget = budget;
+  }
+
+  public async allocateFunds(
+    category: BudgetCategory,
+    year: number,
+    month: number,
+    amount: number
+  ): Promise<void> {
+    // check if allocation already exists
+    const entity =
+      (await getManager()
+        .createQueryBuilder(BudgetAllocation, 'allocation')
+        .leftJoin('allocation.category', 'category')
+        .where('category.id = :categoryId', { categoryId: category.id })
+        .andWhere('allocation.year = :year', { year })
+        .andWhere('allocation.month = :month', { month })
+        .getOne()) ||
+      getManager().create(BudgetAllocation, {
+        category,
+        month,
+        year
+      });
+
+    entity.amount = amount;
+
+    await getManager().save(BudgetAllocation, entity);
   }
 
   public async createCategory(
@@ -105,6 +126,53 @@ export default class BudgetController {
     return group;
   }
 
+  public async displayBudget(): Promise<Budget> {
+    const curDate = new Date();
+
+    const budget = await getManager()
+      .createQueryBuilder(Budget, 'budget')
+      .leftJoinAndSelect('budget.groups', 'groups')
+      .leftJoinAndSelect('groups.categories', 'categories')
+      .leftJoinAndMapOne(
+        'categories.allocation',
+        'categories.allocations',
+        'allocations',
+        'allocations.month = :month AND allocations.year = :year'
+      )
+      .where('budget.id = :budgetId', { budgetId: this.budget.id })
+      .setParameters({ month: curDate.getMonth(), year: curDate.getFullYear() })
+      .getOne();
+
+    if (!budget) {
+      throw new Error('Budget not found.');
+    }
+
+    const b = {
+      ...budget,
+      groups: budget.groups.map(group => ({
+        ...group,
+        categories: group.categories.map(c => {
+          const category = { ...c };
+          // @ts-ignore
+          category.amount = '0.00';
+
+          // @ts-ignore
+          if (category.allocation) {
+            // @ts-ignore
+            category.amount = category.allocation.amount;
+          }
+
+          // @ts-ignore
+          delete category.allocation;
+
+          return category;
+        })
+      }))
+    };
+
+    return b;
+  }
+
   public async getCategory(categoryId: string): Promise<BudgetCategory> {
     try {
       const entity = await getManager()
@@ -123,31 +191,5 @@ export default class BudgetController {
     } catch (e) {
       throw new Error('Category not found.');
     }
-  }
-
-  public async allocateFunds(
-    category: BudgetCategory,
-    year: number,
-    month: number,
-    amount: number
-  ): Promise<void> {
-    // check if allocation already exists
-    const entity =
-      (await getManager()
-        .createQueryBuilder(BudgetAllocation, 'allocation')
-        .leftJoin('allocation.category', 'category')
-        .where('category.id = :categoryId', { categoryId: category.id })
-        .andWhere('allocation.year = :year', { year })
-        .andWhere('allocation.month = :month', { month })
-        .getOne()) ||
-      getManager().create(BudgetAllocation, {
-        category,
-        month,
-        year
-      });
-
-    entity.amount = amount;
-
-    await getManager().save(BudgetAllocation, entity);
   }
 }

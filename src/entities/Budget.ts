@@ -16,9 +16,9 @@ export default class Budget {
   @Column({ nullable: false })
   public name: string;
 
-  @ManyToOne(() => User, { eager: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'CASCADE' })
   public owner: User;
 
-  @OneToMany(() => BudgetGroup, group => group.budget, { eager: true })
+  @OneToMany(() => BudgetGroup, group => group.budget)
   public groups: BudgetGroup[];
 }
