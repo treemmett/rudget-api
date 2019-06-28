@@ -1,8 +1,19 @@
 import { Joi, celebrate } from 'celebrate';
 import { Router } from 'express';
 import UserController from '../controllers/UserController';
+import validateSession from '../middleware/validateSession';
 
 const auth = Router();
+
+auth.delete('/', validateSession(), async (req, res, next) => {
+  try {
+    const controller = new UserController(req.session.user);
+    await controller.removeSession(req.session.token.id);
+    res.end();
+  } catch (e) {
+    next(e);
+  }
+});
 
 auth.post('/', async (req, res, next) => {
   try {

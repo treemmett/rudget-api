@@ -114,7 +114,7 @@ export default class UserController {
   public static async validateSession(
     accessToken: string,
     csrf: string
-  ): Promise<User> {
+  ): Promise<{ user: User; token: Session }> {
     let id: string;
     let version: number;
 
@@ -127,7 +127,7 @@ export default class UserController {
 
     const user = await getManager()
       .createQueryBuilder(User, 'user')
-      .leftJoin('user.sessions', 'session')
+      .leftJoinAndSelect('user.sessions', 'session')
       .where('session.id = :sessionId', { sessionId: id })
       .andWhere('session.version = :version', { version })
       .getOne();
@@ -136,7 +136,15 @@ export default class UserController {
       throw new Error('Invalid session.');
     }
 
-    return user;
+    const session = user.sessions[0];
+
+    if (!session) {
+      throw new Error('Could not filter session.');
+    }
+
+    delete user.sessions;
+
+    return { user, token: session };
   }
 
   public user: User;
@@ -151,6 +159,21 @@ export default class UserController {
       .leftJoin('budget.owner', 'user')
       .where('user.id = :userId', { userId: this.user.id })
       .getMany();
+  }
+
+  public async removeSession(sessionId: string): Promise<void> {
+    const session = await getManager()
+      .createQueryBuilder(Session, 'session')
+      .leftJoin('session.user', 'user')
+      .where('session.id = :sessionId', { sessionId })
+      .andWhere('user.id = :userId', { userId: this.user.id })
+      .getOne();
+
+    if (!session) {
+      throw new Error('Session not found.');
+    }
+
+    await getManager().remove(session);
   }
 
   private static async getSessionTokens(

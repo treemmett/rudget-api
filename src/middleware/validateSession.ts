@@ -1,4 +1,5 @@
 import { RequestHandler } from 'express';
+import Session from '../entities/Session';
 import User from '../entities/User';
 import UserController from '../controllers/UserController';
 
@@ -9,13 +10,17 @@ const validateSession = (): RequestHandler => async (req, res, next) => {
     }
 
     const accessToken = req.headers.authorization.split('Bearer ');
-    const user: User = await UserController.validateSession(
+    const {
+      user,
+      token
+    }: { user: User; token: Session } = await UserController.validateSession(
       accessToken[1],
       req.cookies.s
     );
 
     req.session = {
-      user
+      user,
+      token
     };
 
     next();
@@ -30,6 +35,7 @@ declare global {
   namespace Express {
     interface Request {
       session: {
+        token: Session;
         user: User;
       };
     }
