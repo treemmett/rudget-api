@@ -16,7 +16,9 @@ export default class BudgetGroup {
   @Column()
   public name: string;
 
-  @OneToMany(() => BudgetCategory, category => category.group)
+  @OneToMany(() => BudgetCategory, category => category.group, {
+    cascade: true
+  })
   public categories: BudgetCategory[];
 
   @ManyToOne(() => Budget, budget => budget.groups, {

@@ -24,4 +24,7 @@ export default class BudgetCategory {
 
   @OneToMany(() => BudgetAllocation, allocation => allocation.category)
   public allocations: BudgetAllocation[];
+
+  @Column({ nullable: true })
+  public sort: number;
 }

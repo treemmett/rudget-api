@@ -30,6 +30,35 @@ budgets.get('/:budgetId', validateSession(), async (req, res, next) => {
   }
 });
 
+budgets.patch(
+  '/:budgetId/categories/:categoryId',
+  validateSession(),
+  celebrate({
+    body: Joi.object().keys({
+      index: Joi.number()
+        .integer()
+        .required()
+    })
+  }),
+  async (req, res, next) => {
+    try {
+      const { budgetId, categoryId } = req.params;
+      const budget = await BudgetController.getBudget(
+        budgetId,
+        req.session.user
+      );
+      const controller = new BudgetController(budget);
+      const category = await controller.changeCategoryPosition(
+        categoryId,
+        req.body.index
+      );
+      res.send(category);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 budgets.put(
   '/:budgetId/categories/:categoryId/:year/:month',
   validateSession(),

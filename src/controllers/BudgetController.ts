@@ -44,8 +44,8 @@ export default class BudgetController {
         const categoryNames = BudgetController.defaultCategories[group.name];
 
         await Promise.all(
-          categoryNames.map(categoryName =>
-            controller.createCategory(categoryName, group)
+          categoryNames.map((categoryName, index) =>
+            controller.createCategory(categoryName, group, index)
           )
         );
       })
@@ -101,16 +101,61 @@ export default class BudgetController {
     await getManager().save(BudgetAllocation, entity);
   }
 
-  public async createCategory(
-    name: string,
-    group: BudgetGroup
-  ): Promise<BudgetCategory> {
-    const category = getManager().create(BudgetCategory, {
-      name,
-      group
+  public async changeCategoryPosition(
+    categoryId: string,
+    index: number
+  ): Promise<void> {
+    const entity = await getManager()
+      .createQueryBuilder(BudgetCategory, 'category')
+      .leftJoinAndSelect('category.group', 'group')
+      .leftJoinAndSelect('group.categories', 'categories')
+      .where('category.id = :categoryId', { categoryId })
+      .getOne();
+
+    if (!entity) {
+      throw new Error('Category not found.');
+    }
+
+    const { group } = entity;
+
+    group.categories.sort((a, b) => {
+      if (a.sort > b.sort) return 1;
+      if (a.sort < b.sort) return -1;
+      return 0;
     });
 
-    await getManager().save(BudgetCategory, category);
+    const categoryIndex = group.categories.findIndex(c => c.id === categoryId);
+
+    const [splicedCategory] = group.categories.splice(categoryIndex, 1);
+    group.categories.splice(index, 0, splicedCategory);
+
+    group.categories = group.categories.map((c, i) => ({ ...c, sort: i }));
+
+    await getManager().save(BudgetGroup, group);
+  }
+
+  public async createCategory(
+    name: string,
+    group: BudgetGroup,
+    sort?: number
+  ): Promise<BudgetCategory> {
+    const countFn =
+      '(SELECT COUNT(id) FROM budget_categories WHERE "groupId" = :groupId)';
+    const result = await getManager()
+      .createQueryBuilder()
+      .insert()
+      .into(BudgetCategory)
+      .values({
+        name,
+        group,
+        sort: sort === undefined ? () => countFn : sort
+      })
+      .setParameter('groupId', group.id)
+      .execute();
+
+    const { id } = result.identifiers[0];
+
+    const category = await getManager().findOneOrFail(BudgetCategory, id);
 
     return category;
   }
@@ -190,6 +235,25 @@ export default class BudgetController {
       return entity;
     } catch (e) {
       throw new Error('Category not found.');
+    }
+  }
+
+  public async getGroup(groupId: string): Promise<BudgetGroup> {
+    try {
+      const entity = await getManager()
+        .createQueryBuilder(BudgetGroup, 'group')
+        .leftJoin('group.budget', 'budget')
+        .where('budget.id = :budgetId', { budgetId: this.budget.id })
+        .andWhere('group.id = :groupId', { groupId })
+        .getOne();
+
+      if (!entity) {
+        throw {};
+      }
+
+      return entity;
+    } catch (e) {
+      throw new Error('Group not found.');
     }
   }
 }
