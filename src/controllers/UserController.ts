@@ -1,6 +1,7 @@
 import { decrypt, encrypt } from '../utils/encryption';
 import Budget from '../entities/Budget';
 import BudgetController from './BudgetController';
+import HttpError from '../utils/HttpError';
 import Session from '../entities/Session';
 import User from '../entities/User';
 import bcrypt from 'bcrypt';
@@ -49,15 +50,27 @@ export default class UserController {
     email: string,
     password: string
   ): Promise<SessionTokens> {
-    const user = await getManager().findOneOrFail(User, {
+    const user = await getManager().findOne(User, {
       where: { email },
       select: ['hash', 'id']
     });
 
+    if (!user) {
+      throw new HttpError({
+        error: 'invalid_request',
+        message: `Email isn't registered.`,
+        statusCode: 401
+      });
+    }
+
     const passMatch = await bcrypt.compare(password, user.hash);
 
     if (!passMatch) {
-      throw new Error('Password is incorrect.');
+      throw new HttpError({
+        error: 'invalid_request',
+        message: 'Password is incorrect',
+        statusCode: 401
+      });
     }
 
     const refreshSecret = (await randomBytes(32)).toString('hex');
@@ -83,7 +96,11 @@ export default class UserController {
       const json = decrypt(refreshToken, cookie, UserController.encryptionKey);
       [id, secret] = JSON.parse(json);
     } catch (e) {
-      throw new Error('Invalid refresh token.');
+      throw new HttpError({
+        error: 'invalid_token',
+        message: 'Invalid refresh token.',
+        statusCode: 401
+      });
     }
 
     const session = await getManager()
@@ -93,13 +110,21 @@ export default class UserController {
       .getOne();
 
     if (!session) {
-      throw new Error('Invalid refresh token.');
+      throw new HttpError({
+        error: 'invalid_token',
+        message: 'Invalid refresh token.',
+        statusCode: 401
+      });
     }
 
     const hashMatch = bcrypt.compare(secret, session.refreshSecretHash);
 
     if (!hashMatch) {
-      throw new Error('Invalid refresh token.');
+      throw new HttpError({
+        error: 'invalid_token',
+        message: 'Invalid refresh token.',
+        statusCode: 401
+      });
     }
 
     const newRefreshSecret = (await randomBytes(32)).toString('hex');
@@ -122,7 +147,11 @@ export default class UserController {
       const json = decrypt(accessToken, csrf, UserController.encryptionKey);
       [id, version] = JSON.parse(json);
     } catch (e) {
-      throw new Error('Invalid token');
+      throw new HttpError({
+        error: 'invalid_token',
+        message: 'Invalid access token.',
+        statusCode: 401
+      });
     }
 
     const user = await getManager()
@@ -133,7 +162,11 @@ export default class UserController {
       .getOne();
 
     if (!user) {
-      throw new Error('Invalid session.');
+      throw new HttpError({
+        error: 'invalid_token',
+        message: 'Invalid access token.',
+        statusCode: 401
+      });
     }
 
     const session = user.sessions[0];

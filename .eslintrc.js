@@ -264,15 +264,8 @@ module.exports = {
     // disallow ternary operators when simpler alternatives exist
     'no-unneeded-ternary': 2,
 
-    // require every var be used
-    'no-unused-vars': [
-      1,
-      {
-        vars: 'all',
-        args: 'after-used',
-        ignoreRestSiblings: true
-      }
-    ],
+    // already enabled in typescript
+    'no-unused-vars': 0,
 
     // avoid empty constructors
     'no-useless-constructor': 2,

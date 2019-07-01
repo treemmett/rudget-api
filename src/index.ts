@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import { createConnection } from 'typeorm';
 import dotenv from 'dotenv';
+import errorHandler from './middleware/errorHandler';
 import { errors } from 'celebrate';
 import express from 'express';
 import generateRoutes from './routes';
@@ -41,6 +42,8 @@ createConnection({
   app.use(routes);
 
   app.use(errors());
+
+  app.use(errorHandler());
 
   const port = process.env.PORT || 3000;
   // eslint-disable-next-line no-console

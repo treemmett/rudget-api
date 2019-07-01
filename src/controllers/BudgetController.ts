@@ -2,6 +2,7 @@ import Budget from '../entities/Budget';
 import BudgetAllocation from '../entities/BudgetAllocation';
 import BudgetCategory from '../entities/BudgetCategory';
 import BudgetGroup from '../entities/BudgetGroup';
+import HttpError from '../utils/HttpError';
 import User from '../entities/User';
 import { getManager } from 'typeorm';
 
@@ -63,7 +64,12 @@ export default class BudgetController {
       .getOne();
 
     if (!budget) {
-      throw new Error('Budget not found.');
+      throw new HttpError({
+        description: `budget id '${budgetId}' was not found.`,
+        error: 'budget_not_found',
+        message: `Budget not found.`,
+        statusCode: 404
+      });
     }
 
     return budget;
@@ -124,11 +130,21 @@ export default class BudgetController {
     ]);
 
     if (!category) {
-      throw new Error('Category not found.');
+      throw new HttpError({
+        description: `category id '${categoryId}' was not found.`,
+        error: 'category_not_found',
+        message: `Category not found.`,
+        statusCode: 404
+      });
     }
 
     if (!group) {
-      throw new Error('Group not found.');
+      throw new HttpError({
+        description: `group id ${groupId} was not found.`,
+        error: 'group_not_found',
+        message: `Group not found.`,
+        statusCode: 404
+      });
     }
 
     group.categories.splice(index, 0, category);
@@ -193,7 +209,11 @@ export default class BudgetController {
       .getOne();
 
     if (!budget) {
-      throw new Error('Budget not found.');
+      throw new HttpError({
+        error: 'budget_not_found',
+        message: 'Budget not found',
+        statusCode: 404
+      });
     }
 
     const b = {
@@ -238,7 +258,12 @@ export default class BudgetController {
 
       return entity;
     } catch (e) {
-      throw new Error('Category not found.');
+      throw new HttpError({
+        description: `category id '${categoryId}' was not found.`,
+        error: 'category_not_found',
+        message: `Category not found.`,
+        statusCode: 404
+      });
     }
   }
 
@@ -257,7 +282,12 @@ export default class BudgetController {
 
       return entity;
     } catch (e) {
-      throw new Error('Group not found.');
+      throw new HttpError({
+        description: `group id '${groupId}' was not found.`,
+        error: 'group_not_found',
+        message: `Group not found.`,
+        statusCode: 404
+      });
     }
   }
 }
