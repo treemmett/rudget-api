@@ -103,35 +103,39 @@ export default class BudgetController {
 
   public async changeCategoryPosition(
     categoryId: string,
+    groupId: string,
     index: number
   ): Promise<void> {
-    const entity = await getManager()
-      .createQueryBuilder(BudgetCategory, 'category')
-      .leftJoinAndSelect('category.group', 'group')
-      .leftJoinAndSelect('group.categories', 'categories')
-      .where('category.id = :categoryId', { categoryId })
-      .getOne();
+    const [category, group] = await Promise.all([
+      getManager()
+        .createQueryBuilder(BudgetCategory, 'category')
+        .leftJoin('category.group', 'group')
+        .leftJoin('group.budget', 'budget')
+        .where('budget.id = :budgetId', { budgetId: this.budget.id })
+        .andWhere('category.id = :categoryId', { categoryId })
+        .getOne(),
+      getManager()
+        .createQueryBuilder(BudgetGroup, 'group')
+        .leftJoin('group.budget', 'budget')
+        .leftJoinAndSelect('group.categories', 'categories')
+        .where('budget.id = :budgetId', { budgetId: this.budget.id })
+        .andWhere('group.id = :groupId', { groupId })
+        .getOne()
+    ]);
 
-    if (!entity) {
+    if (!category) {
       throw new Error('Category not found.');
     }
 
-    const { group } = entity;
+    if (!group) {
+      throw new Error('Group not found.');
+    }
 
-    group.categories.sort((a, b) => {
-      if (a.sort > b.sort) return 1;
-      if (a.sort < b.sort) return -1;
-      return 0;
-    });
-
-    const categoryIndex = group.categories.findIndex(c => c.id === categoryId);
-
-    const [splicedCategory] = group.categories.splice(categoryIndex, 1);
-    group.categories.splice(index, 0, splicedCategory);
+    group.categories.splice(index, 0, category);
 
     group.categories = group.categories.map((c, i) => ({ ...c, sort: i }));
 
-    await getManager().save(BudgetGroup, group);
+    getManager().save(BudgetGroup, group);
   }
 
   public async createCategory(

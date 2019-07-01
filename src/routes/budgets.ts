@@ -35,6 +35,7 @@ budgets.patch(
   validateSession(),
   celebrate({
     body: Joi.object().keys({
+      group: Joi.string().required(),
       index: Joi.number()
         .integer()
         .required()
@@ -43,6 +44,7 @@ budgets.patch(
   async (req, res, next) => {
     try {
       const { budgetId, categoryId } = req.params;
+      const { group, index } = req.body;
       const budget = await BudgetController.getBudget(
         budgetId,
         req.session.user
@@ -50,7 +52,8 @@ budgets.patch(
       const controller = new BudgetController(budget);
       const category = await controller.changeCategoryPosition(
         categoryId,
-        req.body.index
+        group,
+        index
       );
       res.send(category);
     } catch (e) {
