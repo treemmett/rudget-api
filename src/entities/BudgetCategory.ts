@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 import BudgetAllocation from './BudgetAllocation';
 import BudgetGroup from './BudgetGroup';
+import Transaction from './Transaction';
 
 @Entity({ name: 'budget_categories' })
 export default class BudgetCategory {
@@ -24,6 +25,9 @@ export default class BudgetCategory {
 
   @OneToMany(() => BudgetAllocation, allocation => allocation.category)
   public allocations: BudgetAllocation[];
+
+  @OneToMany(() => Transaction, transaction => transaction.category)
+  public transactions: Transaction[];
 
   @Column({ nullable: true })
   public sort: number;

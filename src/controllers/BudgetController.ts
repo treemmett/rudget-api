@@ -3,6 +3,7 @@ import BudgetAllocation from '../entities/BudgetAllocation';
 import BudgetCategory from '../entities/BudgetCategory';
 import BudgetGroup from '../entities/BudgetGroup';
 import HttpError from '../utils/HttpError';
+import Transaction from '../entities/Transaction';
 import User from '../entities/User';
 import { getManager } from 'typeorm';
 
@@ -79,6 +80,24 @@ export default class BudgetController {
 
   public constructor(budget: Budget) {
     this.budget = budget;
+  }
+
+  public async addTransaction(
+    description: string,
+    amount: number,
+    date: Date,
+    category: BudgetCategory
+  ): Promise<Transaction> {
+    const transaction = getManager().create(Transaction, {
+      description,
+      date,
+      amount,
+      category
+    });
+
+    await getManager().save(Transaction, transaction);
+
+    return transaction;
   }
 
   public async allocateFunds(
@@ -289,5 +308,15 @@ export default class BudgetController {
         statusCode: 404
       });
     }
+  }
+
+  public getTransactions(): Promise<Transaction[]> {
+    return getManager()
+      .createQueryBuilder(Transaction, 'transaction')
+      .leftJoin('transaction.category', 'category')
+      .leftJoin('category.group', 'group')
+      .leftJoin('group.budget', 'budget')
+      .where('budget.id = :budgetId', { budgetId: this.budget.id })
+      .getMany();
   }
 }
