@@ -100,4 +100,31 @@ budgets.put(
   }
 );
 
+budgets.post(
+  '/:budgetId/groups/:groupId/category',
+  validateSession(),
+  celebrate({
+    body: Joi.object().keys({
+      name: Joi.string()
+        .trim()
+        .required()
+    })
+  }),
+  async (req, res, next) => {
+    try {
+      const { budgetId, groupId } = req.params;
+      const budget = await BudgetController.getBudget(
+        budgetId,
+        req.session.user
+      );
+      const controller = new BudgetController(budget);
+      const group = await controller.getGroup(groupId);
+      const category = await controller.createCategory(req.body.name, group);
+      res.send(category);
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
 export default budgets;
