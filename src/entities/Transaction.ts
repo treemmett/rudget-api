@@ -20,4 +20,6 @@ export default class Transaction {
     nullable: false
   })
   public category: BudgetCategory;
+  @Column({ nullable: false })
+  public categoryId: string;
 }
