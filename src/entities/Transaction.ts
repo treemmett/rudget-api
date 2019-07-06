@@ -9,7 +9,12 @@ export default class Transaction {
   @Column()
   public description: string;
 
-  @Column({ type: 'decimal', precision: 13, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 13,
+    scale: 2,
+    transformer: { from: value => Number(value), to: value => Number(value) }
+  })
   public amount: number;
 
   @Column({ type: 'date' })
@@ -20,6 +25,7 @@ export default class Transaction {
     nullable: false
   })
   public category: BudgetCategory;
+
   @Column({ nullable: false })
   public categoryId: string;
 }
