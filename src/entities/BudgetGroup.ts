@@ -16,6 +16,9 @@ export default class BudgetGroup {
   @Column()
   public name: string;
 
+  @Column({ nullable: false })
+  public sort: number;
+
   @OneToMany(() => BudgetCategory, category => category.group, {
     cascade: true
   })

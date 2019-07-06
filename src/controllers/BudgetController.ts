@@ -34,9 +34,8 @@ export default class BudgetController {
 
     // create default groups
     const defaultGroups = await Promise.all(
-      Object.keys(BudgetController.defaultCategories).map(
-        controller.createGroup,
-        controller
+      Object.keys(BudgetController.defaultCategories).map((groupName, index) =>
+        controller.createGroup(groupName, index)
       )
     );
 
@@ -170,7 +169,27 @@ export default class BudgetController {
 
     group.categories = group.categories.map((c, i) => ({ ...c, sort: i }));
 
-    getManager().save(BudgetGroup, group);
+    await getManager().save(BudgetGroup, group);
+  }
+
+  public async changeGroupPosition(
+    groupId: string,
+    index: number
+  ): Promise<void> {
+    const groups = await getManager()
+      .createQueryBuilder(BudgetGroup, 'group')
+      .leftJoin('group.budget', 'budget')
+      .where('budget.id = :budgetId', { budgetId: this.budget.id })
+      .getMany();
+
+    const currentIndex = groups.findIndex(g => g.id === groupId);
+    const [group] = groups.splice(currentIndex, 1);
+    groups.splice(index, 0, group);
+
+    await getManager().save(
+      BudgetGroup,
+      groups.map((g, i) => ({ ...g, sort: i }))
+    );
   }
 
   public async createCategory(
@@ -199,13 +218,25 @@ export default class BudgetController {
     return category;
   }
 
-  public async createGroup(name: string): Promise<BudgetGroup> {
-    const group = getManager().create(BudgetGroup, {
-      name,
-      budget: this.budget
-    });
+  public async createGroup(name: string, sort?: number): Promise<BudgetGroup> {
+    const countFn =
+      '(SELECT COUNT(id) FROM budget_groups WHERE "budgetId" = :budgetId)';
 
-    await getManager().save(BudgetGroup, group);
+    const result = await getManager()
+      .createQueryBuilder()
+      .insert()
+      .into(BudgetGroup)
+      .values({
+        name,
+        budget: this.budget,
+        sort: sort === undefined ? () => countFn : sort
+      })
+      .setParameter('budgetId', this.budget.id)
+      .execute();
+
+    const { id } = result.identifiers[0];
+
+    const group = await getManager().findOneOrFail(BudgetGroup, id);
 
     return group;
   }

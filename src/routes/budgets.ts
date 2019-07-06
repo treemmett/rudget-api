@@ -50,12 +50,8 @@ budgets.patch(
         req.session.user
       );
       const controller = new BudgetController(budget);
-      const category = await controller.changeCategoryPosition(
-        categoryId,
-        group,
-        index
-      );
-      res.send(category);
+      await controller.changeCategoryPosition(categoryId, group, index);
+      res.end();
     } catch (e) {
       next(e);
     }
@@ -132,6 +128,33 @@ budgets.put(
       const controller = new BudgetController(budget);
       const category = await controller.getCategory(categoryId);
       await controller.allocateFunds(category, year, month, req.body.amount);
+      res.end();
+    } catch (e) {
+      next(e);
+    }
+  }
+);
+
+budgets.patch(
+  '/:budgetId/groups/:groupId',
+  validateSession(),
+  celebrate({
+    body: Joi.object().keys({
+      index: Joi.number()
+        .integer()
+        .required()
+    })
+  }),
+  async (req, res, next) => {
+    try {
+      const { budgetId, groupId } = req.params;
+      const { index } = req.body;
+      const budget = await BudgetController.getBudget(
+        budgetId,
+        req.session.user
+      );
+      const controller = new BudgetController(budget);
+      await controller.changeGroupPosition(groupId, index);
       res.end();
     } catch (e) {
       next(e);

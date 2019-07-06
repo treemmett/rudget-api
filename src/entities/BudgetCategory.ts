@@ -29,6 +29,6 @@ export default class BudgetCategory {
   @OneToMany(() => Transaction, transaction => transaction.category)
   public transactions: Transaction[];
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   public sort: number;
 }
