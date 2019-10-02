@@ -1,3 +1,17 @@
+# Setup
+
+## Environmental Variables
+
+| Key                     | Description                     | Required | Default Value |
+| ----------------------- | ------------------------------- | -------- | ------------- |
+| ACCESS_TOKEN_ENCRYPTION | 16 byte hexidecimal encryption. | ✓        |               |
+| PORT                    | Port to run API on.             | ✓        |               |
+| DB_HOST                 | Database server host name.      |          | `db`          |
+| DB_USER                 | Username for database server.   |          | `postgres`    |
+| DB_PASS                 | Password for database server.   |          | `postgres`    |
+| DB_DATABASE             | Database to use.                |          | `rudget`      |
+| DB_PORT                 | Port for database server.       |          | `5432`        |
+
 # API
 
 - [Create User](#create-user)

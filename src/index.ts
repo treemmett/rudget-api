@@ -10,7 +10,13 @@ import generateRoutes from './routes';
 
 dotenv.config();
 
-const { DB_HOST, DB_USER, DB_PASS, DB_DATABASE, DB_PORT } = process.env;
+const {
+  DB_HOST = 'db',
+  DB_USER = 'postgres',
+  DB_PASS = 'postgres',
+  DB_DATABASE = 'rudget',
+  DB_PORT = '5432'
+} = process.env;
 
 createConnection({
   cli: {
@@ -24,28 +30,33 @@ createConnection({
   logging: false,
   migrations: ['build/migration/**/*.js'],
   password: DB_PASS,
-  port: parseInt(DB_PORT || '3000', 10),
+  port: parseInt(DB_PORT, 10),
   subscribers: ['build/subscriber/**/*.js'],
   synchronize: true,
   type: 'postgres',
   username: DB_USER
-}).then(async () => {
-  const app = express();
+})
+  .then(async () => {
+    const app = express();
 
-  const routes = await generateRoutes();
+    const routes = await generateRoutes();
 
-  app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({ extended: true }));
 
-  app.use(cookieParser());
+    app.use(cookieParser());
 
-  app.use(routes);
+    app.use(routes);
 
-  app.use(errors());
+    app.use(errors());
 
-  app.use(errorHandler());
+    app.use(errorHandler());
 
-  const port = process.env.PORT || 3000;
-  // eslint-disable-next-line no-console
-  app.listen(port, () => console.log(`API up on ${port}`));
-});
+    const port = process.env.PORT || 3000;
+    // eslint-disable-next-line no-console
+    app.listen(port, () => console.log(`API up on ${port}`));
+  })
+  .catch(e => {
+    console.log(e);
+    console.log('Error');
+  });
